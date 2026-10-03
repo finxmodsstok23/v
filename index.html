@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstroAPK Studio - Converter HTML ke APK & Icon Customizer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- JSZip for Zip creation & extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Google Fonts Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+        
+        #starCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism styling */
+        .glass-card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .glass-card-hover:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .glow-text {
+            text-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+        }
+
+        .glow-btn {
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .glow-btn:hover {
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.7);
+        }
+
+        /* Phone Mockup Frame */
+        .phone-mockup {
+            width: 320px;
+            height: 640px;
+            border: 12px solid #1f2937;
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(139, 92, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .phone-notch {
+            width: 120px;
+            height: 24px;
+            background: #1f2937;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-bottom-left-radius: 14px;
+            border-bottom-right-radius: 14px;
+            z-index: 30;
+        }
+
+        .phone-status-bar {
+            height: 28px;
+            background: rgba(15, 23, 42, 0.9);
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 10px;
+            color: #9ca3af;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen selection:bg-purple-500 selection:text-white">
+
+    <!-- Background Shooting Stars Canvas -->
+    <canvas id="starCanvas"></canvas>
+
+    <!-- Main Wrapper -->
+    <div class="relative z-10 flex flex-col min-h-screen">
+        
+        <!-- Header / Navbar -->
+        <header class="sticky top-0 z-50 glass-card border-b border-gray-800/80">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2.5 bg-gradient-to-tr from-purple-600 to-indigo-500 rounded-xl shadow-lg shadow-purple-500/30">
+                        <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-purple-400">
+                            AstroAPK Studio
+                        </span>
+                        <span class="hidden sm:inline-block text-[10px] bg-purple-900/60 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30 ml-2">v2.5 Pro</span>
+                    </div>
+                </div>
+                <nav class="hidden md:flex items-center space-x-8 text-sm font-medium">
+                    <a href="#hero" class="text-gray-300 hover:text-white transition">Beranda</a>
+                    <a href="#converter" class="text-gray-300 hover:text-white transition">Konverter Web ke APK</a>
+                    <a href="#tutorial" class="text-gray-300 hover:text-white transition">Panduan Build</a>
+                    <a href="#faq" class="text-gray-300 hover:text-white transition">FAQ</a>
+                </nav>
+                <div class="flex items-center space-x-4">
+                    <a href="#converter" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white glow-btn flex items-center gap-2">
+                        <i data-lucide="smartphone" class="w-4 h-4"></i> Konversi Sekarang
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section id="hero" class="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center relative">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card text-purple-300 text-sm mb-8 border border-purple-500/30">
+                <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-yellow-400"></i>
+                <span>Unggah File HTML / ZIP, Atur Icon Custom & Ekstrak APK Project</span>
+            </div>
+            
+            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+                Konversi HTML & Web ke <br/>
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 glow-text">
+                    Aplikasi APK Android
+                </span>
+            </h1>
+            
+            <p class="max-w-3xl mx-auto text-base sm:text-lg text-gray-300 mb-10 leading-relaxed">
+                Platform konverter terlengkap: Upload file kode Anda, sesuaikan **Icon Logo APK**, atur metadata aplikasi, dan simulasi langsung di HP virtual.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
+                <a href="#converter" class="w-full sm:w-auto px-8 py-4 rounded-xl text-base font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white glow-btn flex items-center justify-center gap-2">
+                    <i data-lucide="upload-cloud"></i> Upload File / Input Kode
+                </a>
+                <a href="#tutorial" class="w-full sm:w-auto px-8 py-4 rounded-xl text-base font-semibold glass-card text-gray-200 hover:bg-gray-800/80 transition flex items-center justify-center gap-2">
+                    <i data-lucide="book-open"></i> Cara Kompilasi APK
+                </a>
+            </div>
+
+            <!-- Features Highlights -->
+            <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+                <div class="p-5 glass-card rounded-2xl border border-gray-800 text-left">
+                    <div class="p-2.5 w-fit rounded-xl bg-purple-500/20 text-purple-400 mb-3"><i data-lucide="file-up" class="w-5 h-5"></i></div>
+                    <h3 class="text-white font-semibold text-sm">Upload File / ZIP</h3>
+                    <p class="text-xs text-gray-400 mt-1">Mendukung upload .html, .zip, .css, dan .js secara otomatis.</p>
+                </div>
+                <div class="p-5 glass-card rounded-2xl border border-gray-800 text-left">
+                    <div class="p-2.5 w-fit rounded-xl bg-pink-500/20 text-pink-400 mb-3"><i data-lucide="image" class="w-5 h-5"></i></div>
+                    <h3 class="text-white font-semibold text-sm">Custom Icon APK</h3>
+                    <p class="text-xs text-gray-400 mt-1">Ubah logo icon aplikasi Android sesuai brand Anda.</p>
+                </div>
+                <div class="p-5 glass-card rounded-2xl border border-gray-800 text-left">
+                    <div class="p-2.5 w-fit rounded-xl bg-indigo-500/20 text-indigo-400 mb-3"><i data-lucide="sliders" class="w-5 h-5"></i></div>
+                    <h3 class="text-white font-semibold text-sm">Konfigurasi Lengkap</h3>
+                    <p class="text-xs text-gray-400 mt-1">Pengaturan Package ID, Splash Screen, & Orientasi HP.</p>
+                </div>
+                <div class="p-5 glass-card rounded-2xl border border-gray-800 text-left">
+                    <div class="p-2.5 w-fit rounded-xl bg-emerald-500/20 text-emerald-400 mb-3"><i data-lucide="smartphone" class="w-5 h-5"></i></div>
+                    <h3 class="text-white font-semibold text-sm">Live HP Simulator</h3>
+                    <p class="text-xs text-gray-400 mt-1">Simulasi mode App Launcher & Tampilan Aplikasi HP.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Converter Studio & Simulator -->
+        <section id="converter" class="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl sm:text-4xl font-bold text-white mb-3">Studio Konverter & Simulator</h2>
+                <p class="text-gray-400">Atur seluruh data aplikasi Android Anda di panel kiri dan lihat hasilnya di simulator kanan secara real-time.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Input & Configuration Form Panel -->
+                <div class="lg:col-span-7 space-y-6">
+                    
+                    <!-- Section 1: Upload Source Code or Manual Input -->
+                    <div class="glass-card rounded-3xl p-6 sm:p-7 glass-card-hover border border-purple-500/20">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="code-2" class="w-5 h-5 text-purple-400"></i> Source Code Website
+                            </h3>
+                            <!-- Source Type Selector Tabs -->
+                            <div class="flex bg-gray-900/90 p-1 rounded-xl border border-gray-800 text-xs font-medium">
+                                <button id="srcUploadBtn" onclick="switchSourceMode('upload')" class="px-3 py-1.5 rounded-lg text-white bg-purple-600 transition">Upload File</button>
+                                <button id="srcCodeBtn" onclick="switchSourceMode('code')" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition">Editor Code</button>
+                                <button id="srcUrlBtn" onclick="switchSourceMode('url')" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition">URL Web</button>
+                            </div>
+                        </div>
+
+                        <!-- Mode 1: File Upload Box -->
+                        <div id="modeUpload" class="space-y-3">
+                            <div id="dropZone" class="border-2 border-dashed border-purple-500/40 hover:border-purple-400 bg-gray-900/50 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center">
+                                <div class="p-3 bg-purple-600/20 text-purple-300 rounded-full mb-3">
+                                    <i data-lucide="cloud-upload" class="w-8 h-8"></i>
+                                </div>
+                                <p class="text-sm font-semibold text-white mb-1">Tarik & Lepas File HTML / ZIP di sini</p>
+                                <p class="text-xs text-gray-400 mb-3">Atau klik untuk memilih file (.html, .zip, .css, .js)</p>
+                                <input type="file" id="fileInput" accept=".html,.zip,.css,.js" class="hidden" onchange="handleFileSelect(event)">
+                                <button type="button" onclick="document.getElementById('fileInput').click()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg transition">
+                                    Pilih File Komputer
+                                </button>
+                            </div>
+                            <div id="fileInfo" class="hidden p-3 bg-gray-900/80 rounded-xl border border-purple-500/30 text-xs flex items-center justify-between">
+                                <span class="text-purple-300 flex items-center gap-2 truncate" id="fileNameText">
+                                    <i data-lucide="file-check" class="w-4 h-4 text-green-400"></i> <span>index.html</span>
+                                </span>
+                                <button onclick="resetUploadedFile()" class="text-red-400 hover:text-red-300 font-semibold text-xs ml-2">Hapus</button>
+                            </div>
+                        </div>
+
+                        <!-- Mode 2: Code Editor Textarea -->
+                        <div id="modeCode" class="space-y-2 hidden">
+                            <div class="flex justify-between items-center text-xs text-gray-400">
+                                <span>Ketik atau Paste Kode HTML Lengkap:</span>
+                                <button onclick="loadSampleCode()" class="text-purple-400 hover:underline">Gunakan Sample Template</button>
+                            </div>
+                            <textarea id="htmlInput" rows="8" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl p-3.5 text-xs font-mono text-purple-200 focus:outline-none focus:border-purple-500 transition" placeholder="<!DOCTYPE html>..."></textarea>
+                        </div>
+
+                        <!-- Mode 3: URL Input -->
+                        <div id="modeUrl" class="space-y-2 hidden">
+                            <label class="block text-xs font-medium text-gray-400">Alamat Web / Domain (HTTPS):</label>
+                            <input type="url" id="urlInput" value="https://example.com" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500" placeholder="https://website-anda.com">
+                        </div>
+                    </div>
+
+                    <!-- Section 2: APK Custom Icon & Styling -->
+                    <div class="glass-card rounded-3xl p-6 sm:p-7 glass-card-hover border border-pink-500/20">
+                        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <i data-lucide="image" class="w-5 h-5 text-pink-400"></i> Custom Icon & Logo APK
+                        </h3>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                            <!-- Icon Preview Box -->
+                            <div class="sm:col-span-4 flex flex-col items-center justify-center p-4 bg-gray-900/80 rounded-2xl border border-gray-800">
+                                <div class="relative group">
+                                    <img id="apkIconPreview" src="https://placehold.co/128x128/8b5cf6/ffffff?text=APK" alt="APK Logo Preview" class="w-20 h-20 rounded-2xl shadow-lg border-2 border-purple-500/50 object-cover">
+                                    <div class="absolute inset-0 bg-black/50 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] text-white transition pointer-events-none">
+                                        Preview Icon
+                                    </div>
+                                </div>
+                                <span class="text-[11px] text-gray-400 mt-2 font-medium" id="iconFileName">Default App Icon</span>
+                            </div>
+
+                            <!-- Upload Icon Controls -->
+                            <div class="sm:col-span-8 space-y-3">
+                                <label class="block text-xs text-gray-300 font-medium">Unggah Gambar Logo Aplikasi (.PNG, .JPG, .SVG)</label>
+                                <input type="file" id="iconFileInput" accept="image/*" class="hidden" onchange="handleIconSelect(event)">
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="document.getElementById('iconFileInput').click()" class="flex-1 py-2.5 px-3 bg-pink-600 hover:bg-pink-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2">
+                                        <i data-lucide="upload" class="w-4 h-4"></i> Upload Logo Custom
+                                    </button>
+                                    <button type="button" onclick="resetDefaultIcon()" class="py-2.5 px-3 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-xl transition">
+                                        Reset
+                                    </button>
+                                </div>
+                                <p class="text-[11px] text-gray-400">Rekomendasi ukuran rasio 1:1 (Minimal 512x512 piksel) untuk tampilan maksimal di Android launcher.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: App Detailed Settings -->
+                    <div class="glass-card rounded-3xl p-6 sm:p-7 glass-card-hover border border-indigo-500/20 space-y-4">
+                        <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                            <i data-lucide="settings-2" class="w-5 h-5 text-indigo-400"></i> Pengaturan Detail APK Android
+                        </h3>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Nama Aplikasi Android</label>
+                                <input type="text" id="appName" value="Aplikasi Saya" oninput="updateAppMetadata()" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-purple-500" placeholder="Misal: Toko Online">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Package Name ID</label>
+                                <input type="text" id="appPackage" value="com.mycompany.myapp" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-purple-500 font-mono" placeholder="com.brand.app">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Versi Aplikasi</label>
+                                <input type="text" id="appVersion" value="1.0.0" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-purple-500" placeholder="1.0.0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Orientasi Layar</label>
+                                <select id="appOrientation" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
+                                    <option value="default">Otomatis / Portrait & Landscape</option>
+                                    <option value="portrait" selected>Kunci Portrait (Vertikal)</option>
+                                    <option value="landscape">Kunci Landscape (Horizontal)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Warna Status Bar (Theme)</label>
+                                <div class="flex gap-2 items-center">
+                                    <input type="color" id="themeColor" value="#8b5cf6" onchange="updateAppMetadata()" class="h-9 w-12 bg-gray-900 border border-gray-700 rounded-xl cursor-pointer p-0.5">
+                                    <input type="text" id="themeColorText" value="#8b5cf6" readonly class="flex-1 bg-gray-900/90 border border-gray-700 rounded-xl px-3 py-2 text-xs text-gray-300 font-mono">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Dukungan Akses Offline</label>
+                                <select id="appOffline" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
+                                    <option value="yes">Aktifkan Cache Offline (Service Worker)</option>
+                                    <option value="no">Non-aktifkan (Hanya Online)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Control Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button onclick="updateSimulatorPreview()" class="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl transition flex items-center justify-center gap-2 border border-gray-700">
+                            <i data-lucide="play" class="w-4 h-4 text-green-400"></i> Uji simulator
+                        </button>
+                        <button onclick="generateApkProject()" class="flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:opacity-95 text-white font-bold rounded-xl glow-btn transition flex items-center justify-center gap-2">
+                            <i data-lucide="download" class="w-5 h-5"></i> Download Project APK Zip
+                        </button>
+                    </div>
+
+                    <!-- Status / Notification Message -->
+                    <div id="messageBox" class="hidden p-4 rounded-2xl text-sm flex items-center gap-3 border transition"></div>
+
+                </div>
+
+                <!-- Smartphone Live Simulator Panel -->
+                <div class="lg:col-span-5 flex flex-col items-center justify-center sticky top-24">
+                    
+                    <!-- Simulator View Switcher -->
+                    <div class="flex bg-gray-900/90 p-1.5 rounded-2xl border border-gray-800 mb-4 text-xs font-medium">
+                        <button id="simAppModeBtn" onclick="switchSimulatorMode('app')" class="px-4 py-2 rounded-xl text-white bg-purple-600 shadow-md transition">
+                            Tampilan Aplikasi
+                        </button>
+                        <button id="simHomeModeBtn" onclick="switchSimulatorMode('home')" class="px-4 py-2 rounded-xl text-gray-400 hover:text-white transition">
+                            Tampilan App Launcher (Icon HP)
+                        </button>
+                    </div>
+
+                    <!-- Phone Frame -->
+                    <div class="phone-mockup">
+                        <div class="phone-notch"></div>
+                        
+                        <!-- Top Status Bar Mockup -->
+                        <div class="phone-status-bar" id="phoneStatusBar">
+                            <span id="phoneTime">12:00</span>
+                            <div class="flex items-center gap-1.5">
+                                <i data-lucide="wifi" class="w-3 h-3"></i>
+                                <i data-lucide="battery-charging" class="w-3 h-3"></i>
+                            </div>
+                        </div>
+
+                        <!-- Mode A: App Webview Display -->
+                        <div id="simAppDisplay" class="w-full h-full pt-7">
+                            <iframe id="phonePreview" class="w-full h-full bg-white border-none" title="Android Preview"></iframe>
+                        </div>
+
+                        <!-- Mode B: Smartphone Home Screen Launcher Display -->
+                        <div id="simHomeDisplay" class="w-full h-full pt-12 p-6 hidden flex flex-col justify-between bg-cover bg-center" style="background-image: linear-gradient(to bottom, rgba(15,23,42,0.6), rgba(3,7,18,0.9)), url('https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&q=80');">
+                            <div>
+                                <div class="text-center text-white mt-4">
+                                    <p class="text-4xl font-extralight tracking-wider" id="launcherClock">12:00</p>
+                                    <p class="text-xs text-purple-200 mt-1">Sabtu, 3 Oktober</p>
+                                </div>
+
+                                <!-- App Icons Grid on Launcher -->
+                                <div class="grid grid-cols-4 gap-4 mt-10">
+                                    <!-- User Custom APK Icon App -->
+                                    <div class="flex flex-col items-center gap-1 cursor-pointer transform active:scale-95 transition" onclick="switchSimulatorMode('app')">
+                                        <img id="launcherAppIcon" src="https://placehold.co/128x128/8b5cf6/ffffff?text=APK" class="w-12 h-12 rounded-2xl shadow-xl border border-white/20 object-cover">
+                                        <span id="launcherAppName" class="text-[10px] text-white font-medium truncate w-14 text-center">Aplikasi Saya</span>
+                                    </div>
+
+                                    <!-- Mock System Apps -->
+                                    <div class="flex flex-col items-center gap-1 opacity-60">
+                                        <div class="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white"><i data-lucide="globe" class="w-6 h-6"></i></div>
+                                        <span class="text-[10px] text-gray-300">Browser</span>
+                                    </div>
+                                    <div class="flex flex-col items-center gap-1 opacity-60">
+                                        <div class="w-12 h-12 rounded-2xl bg-green-600 flex items-center justify-center text-white"><i data-lucide="camera" class="w-6 h-6"></i></div>
+                                        <span class="text-[10px] text-gray-300">Kamera</span>
+                                    </div>
+                                    <div class="flex flex-col items-center gap-1 opacity-60">
+                                        <div class="w-12 h-12 rounded-2xl bg-orange-600 flex items-center justify-center text-white"><i data-lucide="settings" class="w-6 h-6"></i></div>
+                                        <span class="text-[10px] text-gray-300">Setelan</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="text-center text-[10px] text-purple-300/70 mb-2">Klik icon aplikasi Anda di atas untuk membuka webview</p>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Step-by-Step Compilation Guide Section -->
+        <section id="tutorial" class="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Cara Mengubah HTML Menjadi File APK Jadi</h2>
+                <p class="text-gray-400 max-w-2xl mx-auto">Gunakan file ZIP yang diunduh dari converter di atas dan kompilasi menjadi APK Android siap install dengan 3 pilihan mudah berikut:</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Option 1: WebIntoApp -->
+                <div class="glass-card rounded-3xl p-8 glass-card-hover flex flex-col justify-between">
+                    <div>
+                        <div class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-6">
+                            <i data-lucide="zap" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-xs font-bold text-purple-400 uppercase tracking-wider">Metode 1 • Instan Tanpa Coding</span>
+                        <h3 class="text-xl font-bold text-white mt-1 mb-4">WebIntoApp / Web2App Online</h3>
+                        <p class="text-gray-400 text-sm mb-6">Kompilasi cloud otomatis tanpa butuh laptop spesifikasi tinggi.</p>
+                        
+                        <ol class="space-y-3 text-xs text-gray-300 list-decimal list-inside">
+                            <li class="pl-1">Download paket ZIP project dari tombol di atas.</li>
+                            <li class="pl-1">Buka website <strong class="text-purple-300">WebIntoApp.com</strong>.</li>
+                            <li class="pl-1">Pilih menu **Upload Files** dan masukkan file ZIP & Logo Icon Anda.</li>
+                            <li class="pl-1">Klik **Generate APK** dan tunggu proses cloud dalam 1-2 menit.</li>
+                            <li class="pl-1">Unduh file `.apk` langsung ke HP Android Anda.</li>
+                        </ol>
+                    </div>
+                    <a href="https://www.webintoapp.com" target="_blank" rel="noopener" class="mt-8 py-3 px-4 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 text-xs font-semibold text-center border border-purple-500/30 transition flex items-center justify-center gap-2">
+                        Buka Konverter WebIntoApp <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+
+                <!-- Option 2: PWABuilder -->
+                <div class="glass-card rounded-3xl p-8 glass-card-hover flex flex-col justify-between">
+                    <div>
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-6">
+                            <i data-lucide="globe" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Metode 2 • Standar Google & Store</span>
+                        <h3 class="text-xl font-bold text-white mt-1 mb-4">PWABuilder (AAB / APK)</h3>
+                        <p class="text-gray-400 text-sm mb-6">Direkomendasikan oleh Microsoft & Google untuk publish ke Play Store.</p>
+                        
+                        <ol class="space-y-3 text-xs text-gray-300 list-decimal list-inside">
+                            <li class="pl-1">Upload isi folder <code class="text-indigo-300">www/</code> dari ZIP ke hosting Anda (Vercel/Netlify/GitHub Pages).</li>
+                            <li class="pl-1">Buka <strong class="text-indigo-300">PWABuilder.com</strong>.</li>
+                            <li class="pl-1">Masukkan URL web Anda (File manifest.json sudah otomatis terkonfigurasi di ZIP).</li>
+                            <li class="pl-1">Pilih **Package for Android**.</li>
+                            <li class="pl-1">Unduh APK / AAB resmi siap upload Play Store.</li>
+                        </ol>
+                    </div>
+                    <a href="https://www.pwabuilder.com" target="_blank" rel="noopener" class="mt-8 py-3 px-4 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-xs font-semibold text-center border border-indigo-500/30 transition flex items-center justify-center gap-2">
+                        Buka PWABuilder <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+
+                <!-- Option 3: Cordova / Android Studio -->
+                <div class="glass-card rounded-3xl p-8 glass-card-hover flex flex-col justify-between">
+                    <div>
+                        <div class="w-12 h-12 rounded-2xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-400 mb-6">
+                            <i data-lucide="code" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-xs font-bold text-pink-400 uppercase tracking-wider">Metode 3 • Level Developer</span>
+                        <h3 class="text-xl font-bold text-white mt-1 mb-4">Apache Cordova CLI</h3>
+                        <p class="text-gray-400 text-sm mb-6">Build APK offline sendiri di PC dengan akses penuh ke plugin native.</p>
+                        
+                        <ol class="space-y-3 text-xs text-gray-300 list-decimal list-inside">
+                            <li class="pl-1">Ekstrak ZIP project AstroAPK di PC Anda.</li>
+                            <li class="pl-1">Buka Terminal / CMD di folder tersebut.</li>
+                            <li class="pl-1">Jalankan: <code class="text-[11px] bg-gray-900 px-1.5 py-0.5 rounded text-pink-300">npm install -g cordova</code></li>
+                            <li class="pl-1">Jalankan: <code class="text-[11px] bg-gray-900 px-1.5 py-0.5 rounded text-pink-300">cordova platform add android</code></li>
+                            <li class="pl-1">Build APK: <code class="text-[11px] bg-gray-900 px-1.5 py-0.5 rounded text-pink-300">cordova build android</code></li>
+                        </ol>
+                    </div>
+                    <a href="https://cordova.apache.org/" target="_blank" rel="noopener" class="mt-8 py-3 px-4 rounded-xl bg-pink-600/20 hover:bg-pink-600/40 text-pink-300 text-xs font-semibold text-center border border-pink-500/30 transition flex items-center justify-center gap-2">
+                        Dokumentasi Cordova <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq" class="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full">
+            <h2 class="text-3xl font-bold text-white text-center mb-10">Pertanyaan Sering Diajukan (FAQ)</h2>
+            <div class="space-y-4">
+                <div class="glass-card p-6 rounded-2xl">
+                    <h4 class="text-base font-semibold text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="help-circle" class="w-4 h-4 text-purple-400"></i> Apakah Icon yang saya upload otomatis masuk ke dalam paket aplikasi?
+                    </h4>
+                    <p class="text-gray-400 text-xs leading-relaxed">Ya! Gambar icon yang Anda upload di atas akan dikemas otomatis ke dalam folder project ZIP (sebagai <code class="text-purple-300">icon.png</code>) dan langsung direferensikan pada file <code class="text-purple-300">config.xml</code> & <code class="text-purple-300">manifest.json</code>.</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <h4 class="text-base font-semibold text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="help-circle" class="w-4 h-4 text-purple-400"></i> Apakah saya bisa memasukkan file ZIP website bertema komplit (HTML, CSS, JS)?
+                    </h4>
+                    <p class="text-gray-400 text-xs leading-relaxed">Tentu bisa. Anda tinggal drag & drop file ZIP website Anda ke kotak Upload. Alat ini akan mengekstraknya secara otomatis dan menyiapkan struktur folder web Android.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="glass-card border-t border-gray-800 py-8 mt-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-purple-400"></i>
+                    <span class="text-sm font-semibold text-gray-300">AstroAPK Studio</span>
+                </div>
+                <p class="text-xs text-gray-500">© 2026 AstroAPK Studio. Dioptimalkan dengan animasi Meteor Canvas & ZIP Builder.</p>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        /* ===================================================
+           1. SHOOTING STARS & METEOR SHOWER CANVAS ANIMATION
+           =================================================== */
+        const canvas = document.getElementById('starCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let stars = [];
+        let shootingStars = [];
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initStars();
+        }
+
+        class Star {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 1.5 + 0.3;
+                this.alpha = Math.random();
+                this.alphaChange = (Math.random() * 0.02 + 0.005) * (Math.random() > 0.5 ? 1 : -1);
+                this.color = ['#ffffff', '#e0e7ff', '#c7d2fe', '#fbcfe8'][Math.floor(Math.random() * 4)];
+            }
+
+            update() {
+                this.alpha += this.alphaChange;
+                if (this.alpha <= 0.1 || this.alpha >= 1) {
+                    this.alphaChange = -this.alphaChange;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class ShootingStar {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width * 1.5 - width * 0.25;
+                this.y = -20;
+                this.length = Math.random() * 130 + 80;
+                this.speed = Math.random() * 14 + 10;
+                this.size = Math.random() * 2 + 0.8;
+                this.angle = Math.PI / 4; // 45 degree angle
+                this.dx = Math.cos(this.angle) * this.speed;
+                this.dy = Math.sin(this.angle) * this.speed;
+                this.opacity = 1;
+                this.fade = Math.random() * 0.015 + 0.008;
+            }
+
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+                this.opacity -= this.fade;
+
+                if (this.opacity <= 0 || this.x > width + 100 || this.y > height + 100) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                
+                const tailX = this.x - Math.cos(this.angle) * this.length;
+                const tailY = this.y - Math.sin(this.angle) * this.length;
+
+                const gradient = ctx.createLinearGradient(this.x, this.y, tailX, tailY);
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                gradient.addColorStop(0.2, 'rgba(168, 85, 247, 0.9)'); 
+                gradient.addColorStop(0.5, 'rgba(236, 72, 153, 0.6)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = this.size;
+                ctx.lineCap = 'round';
+
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(tailX, tailY);
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * 1.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        function initStars() {
+            stars = [];
+            shootingStars = [];
+
+            const starCount = Math.floor((width * height) / 2800);
+            for (let i = 0; i < starCount; i++) {
+                stars.push(new Star());
+            }
+
+            const meteorCount = 22; // High amount of shooting stars
+            for (let i = 0; i < meteorCount; i++) {
+                const meteor = new ShootingStar();
+                meteor.x = Math.random() * width;
+                meteor.y = Math.random() * height;
+                shootingStars.push(meteor);
+            }
+        }
+
+        function animate() {
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+            bgGradient.addColorStop(0, '#030712');
+            bgGradient.addColorStop(0.5, '#090d16');
+            bgGradient.addColorStop(1, '#050515');
+
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+
+            shootingStars.forEach(meteor => {
+                meteor.update();
+                meteor.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        /* ===================================================
+           2. CONVERTER STUDIO STATE & EVENT HANDLERS
+           =================================================== */
+        let currentSourceMode = 'upload';
+        let uploadedFilesMap = {}; // Stores files from upload or zip
+        let customIconBase64 = null; // Stores uploaded icon image
+        let defaultIconUrl = 'https://placehold.co/128x128/8b5cf6/ffffff?text=APK';
+
+        // Switch Source Input Mode (Upload / Code / URL)
+        function switchSourceMode(mode) {
+            currentSourceMode = mode;
+            document.getElementById('modeUpload').classList.add('hidden');
+            document.getElementById('modeCode').classList.add('hidden');
+            document.getElementById('modeUrl').classList.add('hidden');
+
+            document.getElementById('srcUploadBtn').className = 'px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition';
+            document.getElementById('srcCodeBtn').className = 'px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition';
+            document.getElementById('srcUrlBtn').className = 'px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition';
+
+            if (mode === 'upload') {
+                document.getElementById('modeUpload').classList.remove('hidden');
+                document.getElementById('srcUploadBtn').className = 'px-3 py-1.5 rounded-lg text-white bg-purple-600 shadow-md transition';
+            } else if (mode === 'code') {
+                document.getElementById('modeCode').classList.remove('hidden');
+                document.getElementById('srcCodeBtn').className = 'px-3 py-1.5 rounded-lg text-white bg-purple-600 shadow-md transition';
+            } else if (mode === 'url') {
+                document.getElementById('modeUrl').classList.remove('hidden');
+                document.getElementById('srcUrlBtn').className = 'px-3 py-1.5 rounded-lg text-white bg-purple-600 shadow-md transition';
+            }
+        }
+
+        // Setup Drag & Drop File Event Listeners
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-purple-400', 'bg-purple-900/20');
+            }, false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-purple-400', 'bg-purple-900/20');
+            }, false);
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                processUploadedFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                processUploadedFile(files[0]);
+            }
+        }
+
+        async function processUploadedFile(file) {
+            uploadedFilesMap = {};
+            const fileName = file.name;
+            const ext = fileName.split('.').pop().toLowerCase();
+
+            if (ext === 'zip') {
+                try {
+                    const zip = await JSZip.loadAsync(file);
+                    let hasIndex = false;
+
+                    for (let relativePath in zip.files) {
+                        const zipEntry = zip.files[relativePath];
+                        if (!zipEntry.dir) {
+                            const content = await zipEntry.async('string');
+                            uploadedFilesMap[relativePath] = content;
+                            if (relativePath.endsWith('index.html')) {
+                                hasIndex = true;
+                            }
+                        }
+                    }
+
+                    document.getElementById('fileNameText').innerHTML = `<i data-lucide="file-archive" class="w-4 h-4 text-green-400"></i> File Zip: ${fileName} (${Object.keys(uploadedFilesMap).length} file tersimpan)`;
+                    document.getElementById('fileInfo').classList.remove('hidden');
+                    
+                    if (uploadedFilesMap['index.html']) {
+                        document.getElementById('htmlInput').value = uploadedFilesMap['index.html'];
+                    }
+
+                    showMessage('File ZIP berhasil diunduh dan diekstrak ke dalam memori converter.', 'success');
+                } catch (err) {
+                    showMessage('Gagal membaca file ZIP. Pastikan file format zip valid.', 'error');
+                }
+            } else if (ext === 'html') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    uploadedFilesMap['index.html'] = content;
+                    document.getElementById('htmlInput').value = content;
+                    document.getElementById('fileNameText').innerHTML = `<i data-lucide="file-code" class="w-4 h-4 text-green-400"></i> ${fileName}`;
+                    document.getElementById('fileInfo').classList.remove('hidden');
+                    updateSimulatorPreview();
+                    showMessage(`File HTML ${fileName} berhasil diunggah.`, 'success');
+                };
+                reader.readAsText(file);
+            } else {
+                showMessage('Format file tidak didukung. Harap upload .html atau .zip', 'error');
+            }
+            lucide.createIcons();
+        }
+
+        function resetUploadedFile() {
+            uploadedFilesMap = {};
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').classList.add('hidden');
+            showMessage('File unggahan telah dihapus.', 'success');
+        }
+
+        /* ===================================================
+           3. CUSTOM APK ICON UPLOAD HANDLER
+           =================================================== */
+        function handleIconSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                const file = files[0];
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    customIconBase64 = evt.target.result;
+                    
+                    // Update preview images in panel & launcher simulator
+                    document.getElementById('apkIconPreview').src = customIconBase64;
+                    document.getElementById('launcherAppIcon').src = customIconBase64;
+                    document.getElementById('iconFileName').innerText = file.name;
+
+                    showMessage('Icon custom aplikasi berhasil diperbarui!', 'success');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function resetDefaultIcon() {
+            customIconBase64 = null;
+            document.getElementById('apkIconPreview').src = defaultIconUrl;
+            document.getElementById('launcherAppIcon').src = defaultIconUrl;
+            document.getElementById('iconFileName').innerText = 'Default App Icon';
+            document.getElementById('iconFileInput').value = '';
+            showMessage('Logo Icon dikembalikan ke default.', 'success');
+        }
+
+        /* ===================================================
+           4. SIMULATOR & METADATA CONTROL LOGIC
+           =================================================== */
+        function updateAppMetadata() {
+            const appName = document.getElementById('appName').value || 'Aplikasi Saya';
+            const themeColor = document.getElementById('themeColor').value;
+            
+            document.getElementById('launcherAppName').innerText = appName;
+            document.getElementById('themeColorText').value = themeColor;
+            document.getElementById('phoneStatusBar').style.backgroundColor = themeColor;
+        }
+
+        function switchSimulatorMode(mode) {
+            const appDisplay = document.getElementById('simAppDisplay');
+            const homeDisplay = document.getElementById('simHomeDisplay');
+            const appBtn = document.getElementById('simAppModeBtn');
+            const homeBtn = document.getElementById('simHomeModeBtn');
+
+            if (mode === 'app') {
+                appDisplay.classList.remove('hidden');
+                homeDisplay.classList.add('hidden');
+                appBtn.className = 'px-4 py-2 rounded-xl text-white bg-purple-600 shadow-md transition';
+                homeBtn.className = 'px-4 py-2 rounded-xl text-gray-400 hover:text-white transition';
+            } else {
+                appDisplay.classList.add('hidden');
+                homeDisplay.classList.remove('hidden');
+                homeBtn.className = 'px-4 py-2 rounded-xl text-white bg-purple-600 shadow-md transition';
+                appBtn.className = 'px-4 py-2 rounded-xl text-gray-400 hover:text-white transition';
+            }
+        }
+
+        function updateSimulatorPreview() {
+            const iframe = document.getElementById('phonePreview');
+            
+            if (currentSourceMode === 'upload' && uploadedFilesMap['index.html']) {
+                iframe.srcdoc = uploadedFilesMap['index.html'];
+            } else if (currentSourceMode === 'code') {
+                const htmlCode = document.getElementById('htmlInput').value;
+                iframe.srcdoc = htmlCode || '<html><body style="background:#0f172a;color:#fff;display:grid;place-items:center;height:100vh;"><h3>Input Kode HTML untuk melihat preview</h3></body></html>';
+            } else if (currentSourceMode === 'url') {
+                const url = document.getElementById('urlInput').value;
+                iframe.removeAttribute('srcdoc');
+                iframe.src = url;
+            } else {
+                iframe.srcdoc = '<html><body style="background:#0f172a;color:#fff;display:grid;place-items:center;height:100vh;text-align:center;font-family:sans-serif;"><div><h3>Belum ada file yang diupload</h3><p style="font-size:12px;color:#94a3b8;">Silakan upload file HTML/ZIP di panel kiri</p></div></body></html>';
+            }
+
+            switchSimulatorMode('app');
+            showMessage('Tampilan simulator berhasil diperbarui.', 'success');
+        }
+
+        function loadSampleCode() {
+            const sampleHtml = `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstroApp Preview</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; }
+        .card { background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.1); padding: 24px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 85%; }
+        button { background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 15px; width: 100%; }
+        button:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🚀 Android App Native</h2>
+        <p>Aplikasi Anda berhasil dikonversi dari HTML!</p>
+        <button onclick="testAction()">Uji Fitur Interaktif</button>
+        <p id="res" style="margin-top:15px; color:#4ade80; font-size:14px;"></p>
+    </div>
+    <script>
+        function testAction() {
+            document.getElementById('res').innerText = '✓ JavaScript Interaktif HP Bekerja Sempurna!';
+        }
+    <\/script>
+</body>
+</html>`;
+            switchSourceMode('code');
+            document.getElementById('htmlInput').value = sampleHtml;
+            updateSimulatorPreview();
+            showMessage('Sample template HTML berhasil dimuat!', 'success');
+        }
+
+        function showMessage(msg, type) {
+            const msgBox = document.getElementById('messageBox');
+            msgBox.classList.remove('hidden', 'bg-red-500/20', 'text-red-300', 'border-red-500/30', 'bg-emerald-500/20', 'text-emerald-300', 'border-emerald-500/30');
+            
+            if (type === 'success') {
+                msgBox.classList.add('bg-emerald-500/20', 'text-emerald-300', 'border-emerald-500/30');
+            } else {
+                msgBox.classList.add('bg-red-500/20', 'text-red-300', 'border-red-500/30');
+            }
+            
+            msgBox.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="w-5 h-5 flex-shrink-0"></i> <span>${msg}</span>`;
+            lucide.createIcons();
+        }
+
+        /* ===================================================
+           5. ZIP BUILDER & PROJECT PACKAGING ENGINE
+           =================================================== */
+        async function generateApkProject() {
+            const appName = document.getElementById('appName').value || 'AplikasiSaya';
+            const appPackage = document.getElementById('appPackage').value || 'com.mycompany.myapp';
+            const appVersion = document.getElementById('appVersion').value || '1.0.0';
+            const orientation = document.getElementById('appOrientation').value;
+            const themeColor = document.getElementById('themeColor').value;
+            const isOffline = document.getElementById('appOffline').value === 'yes';
+
+            try {
+                const zip = new JSZip();
+
+                // 1. Pack Web Files into www/
+                if (Object.keys(uploadedFilesMap).length > 0) {
+                    for (let filePath in uploadedFilesMap) {
+                        zip.file(`www/${filePath}`, uploadedFilesMap[filePath]);
+                    }
+                } else {
+                    const htmlContent = document.getElementById('htmlInput').value || '<h1>Hello Android App</h1>';
+                    zip.file('www/index.html', htmlContent);
+                }
+
+                // 2. Add Icon File
+                if (customIconBase64) {
+                    // Extract base64 image data
+                    const base64Data = customIconBase64.replace(/^data:image\/(png|jpg|jpeg|svg\+xml);base64,/, "");
+                    zip.file('www/icon.png', base64Data, {base64: true});
+                    zip.file('icon.png', base64Data, {base64: true});
+                }
+
+                // 3. Generate PWA manifest.json
+                const manifestJson = {
+                    "name": appName,
+                    "short_name": appName,
+                    "start_url": "index.html",
+                    "display": "standalone",
+                    "background_color": "#030712",
+                    "theme_color": themeColor,
+                    "orientation": orientation === 'default' ? 'any' : orientation,
+                    "icons": [
+                        {
+                            "src": "icon.png",
+                            "sizes": "512x512",
+                            "type": "image/png",
+                            "purpose": "any maskable"
+                        }
+                    ]
+                };
+                zip.file('www/manifest.json', JSON.stringify(manifestJson, null, 2));
+
+                // 4. Generate Cordova config.xml
+                const configXml = `<?xml version='1.0' encoding='utf-8'?>
+<widget id="${appPackage}" version="${appVersion}" xmlns="http://www.w3.org/ns/widgets">
+    <name>${appName}</name>
+    <description>Project APK dikonversi via AstroAPK Studio</description>
+    <author email="support@astroapk.com">AstroAPK Studio</author>
+    <content src="index.html" />
+    <preference name="Orientation" value="${orientation}" />
+    <preference name="StatusBarBackgroundColor" value="${themeColor}" />
+    <preference name="Fullscreen" value="true" />
+    <icon src="icon.png" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+</widget>`;
+                zip.file('config.xml', configXml);
+
+                // 5. Generate AndroidManifest.xml Preview
+                const androidManifest = `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="${appPackage}">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/icon"
+        android:label="${appName}"
+        android:theme="@style/AppTheme">
+        <activity android:name=".MainActivity"
+            android:screenOrientation="${orientation}">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>`;
+                zip.file('AndroidManifest_preview.xml', androidManifest);
+
+                // 6. Generate Documentation README.md
+                const readme = `# Project Android - ${appName}
+
+Project ini telah dikemas otomatis oleh AstroAPK Studio dengan file web, icon custom, dan konfigurasi Android.
+
+## Fitur Project:
+- Nama Aplikasi: ${appName}
+- Package Name: ${appPackage}
+- Versi: ${appVersion}
+- Color Theme: ${themeColor}
+
+## Cara Kompilasi Menjadi APK:
+
+### Opsi A: Kompilasi Online Gratis (WebIntoApp / PWABuilder)
+1. Buka https://www.webintoapp.com atau https://www.pwabuilder.com
+2. Upload file ZIP ini.
+3. Klik **Generate APK** untuk mengunduh file .apk jadi.
+
+### Opsi B: Kompilasi Offline dengan Cordova CLI
+1. Install Node.js di PC.
+2. Install Cordova: \`npm install -g cordova\`
+3. Ekstrak file ZIP ini dan buka Terminal di folder.
+4. Jalankan:
+   \`cordova platform add android\`
+   \`cordova build android\`
+5. File APK siap dipakai di folder \`platforms/android/app/build/outputs/apk/debug/app-debug.apk\`
+`;
+                zip.file('README.md', readme);
+
+                // Download ZIP
+                const blob = await zip.generateAsync({type: "blob"});
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${appName.toLowerCase().replace(/\s+/g, '_')}_APK_Project.zip`;
+                link.click();
+
+                showMessage(`Project ZIP untuk '${appName}' beserta icon & konfigurasi berhasil diunduh!`, 'success');
+
+            } catch (err) {
+                showMessage('Gagal membuat paket ZIP project. Coba beberapa saat lagi.', 'error');
+            }
+        }
+
+        /* ===================================================
+           6. INITIALIZATION ON PAGE LOAD
+           =================================================== */
+        window.onload = function() {
+            resizeCanvas();
+            animate();
+            loadSampleCode();
+
+            // Update simulator clock automatically
+            setInterval(() => {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const mins = String(now.getMinutes()).padStart(2, '0');
+                document.getElementById('phoneTime').innerText = `${hours}:${mins}`;
+                document.getElementById('launcherClock').innerText = `${hours}:${mins}`;
+            }, 1000);
+        };
+    </script>
+</body>
+</html>
